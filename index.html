@@ -64,16 +64,48 @@
       { texto: " Como esa ...", borrado: false }
     ];
 
+    // PARTICULAS
     let particulas = [];
+    let particulasLluviaActiva = true; // ahora siempre true hasta el final
 
-    // Array para almacenar el color actual de cada letra en la dedicatoria
+    // Array para color de letras dedicatoria
     let coloresPorLetra = [];
+
+    function crearParticulas() {
+      // crea 100 partículas nuevas
+      for (let i = 0; i < 100; i++) {
+        particulas.push({
+          x: random(width),
+          y: random(height),
+          dx: random(-0.3, 0.3),
+          dy: random(-0.3, 0.3),
+          size: random(2, 4),
+          alpha: random(150, 255),
+          color: random(coloresTexto)
+        });
+      }
+    }
+
+    function moverYdibujarParticulas() {
+      for (let p of particulas) {
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > width) p.dx *= -1;
+        if (p.y < 0 || p.y > height) p.dy *= -1;
+
+        fill(p.color + hex(Math.floor(p.alpha), 2));
+        noStroke();
+        ellipse(p.x, p.y, p.size);
+      }
+    }
 
     function setup() {
       createCanvas(windowWidth, windowHeight);
       textSize(26);
       textAlign(CENTER, CENTER);
       textFont('Poppins');
+      crearParticulas(); // Inicialmente las queremos activas
     }
 
     function windowResized() {
@@ -98,7 +130,7 @@
         if (clickCount >= 30) {
           mostrarDedicatoria = true;
           document.getElementById("scrollContainer").style.pointerEvents = "auto";
-          crearParticulas();
+          crearParticulas(); // refresca las partículas para dedicatoria
         }
 
         for (let i = 0; i < 20; i++) {
@@ -117,49 +149,22 @@
       }
     }
 
-    function crearParticulas() {
-      for (let i = 0; i < 100; i++) {
-        particulas.push({
-          x: random(width),
-          y: random(height),
-          dx: random(-0.3, 0.3),
-          dy: random(-0.3, 0.3),
-          size: random(2, 4),
-          alpha: random(150, 255),
-          color: random(coloresTexto)
-        });
-      }
-    }
-
-    function moverYdibujarParticulas() {
-      for (let p of particulas) {
-        p.x += p.dx;
-        p.y += p.dy;
-
-        if (p.x < 0 || p.x > width) p.dx *= -1;
-        if (p.y < 0 || p.y > height) p.dy *= -1;
-
-        fill(p.color + hex(p.alpha, 2));
-        noStroke();
-        ellipse(p.x, p.y, p.size);
-      }
-    }
-
     function draw() {
       background(0, 100);
 
-      // Fondo de partículas si estamos en dedicatoria
+      // --- SIEMPRE muestra partículas de fondo ANTES DE LA DEDICATORIA si la lluvia está activa
+      if (!mostrarDedicatoria && particulasLluviaActiva) {
+        moverYdibujarParticulas();
+      }
+
+      // --- Partículas durante dedicatoria
       if (mostrarDedicatoria) {
         moverYdibujarParticulas();
       }
 
-      // Contador de clics
-      fill(255);
-      textSize(20);
-      textAlign(LEFT, TOP);
-      text("Clics: " + clickCount, 20, 20);
+      // *** Ya NO mostramos el contador ***
 
-      // Lluvia de frases
+      // -- Lluvia de frases
       if (!mostrarDedicatoria) {
         textAlign(CENTER, CENTER);
         textSize(24);
@@ -180,7 +185,7 @@
         for (let i = gotas.length - 1; i >= 0; i--) {
           let g = gotas[i];
           let color = random(coloresTexto);
-          fill(color + hex(g.alpha, 2));
+          fill(color + hex(Math.floor(g.alpha), 2));
           text(g.texto, g.x, g.y);
 
           if (g.explosion) {
@@ -198,7 +203,7 @@
         }
       }
 
-      // Dedicatoria con máquina de escribir y cambio dinámico de color indefinido, sin borrado
+      // Dedicatoria con máquina de escribir y colores dinámicos
       if (mostrarDedicatoria) {
         if (!borrandoFinal && !borrando && !esperando && millis() - tiempoEscritura > velocidadEscritura && indexLetra < textoBase.length) {
           textoVisible += textoBase[indexLetra];
@@ -229,21 +234,7 @@
           }
         }
 
-        // Elimina el borrado final para que la dedicatoria no desaparezca
-        // if (!borrando && indexLetra >= textoBase.length && !esperando && !mensajeFinalizado) {
-        //   mensajeFinalizado = true;
-        //   setTimeout(() => {
-        //     borrandoFinal = true;
-        //     indexLetra = textoVisible.length;
-        //   }, 1000);
-        // }
-        //
-        // if (borrandoFinal && millis() - tiempoEscritura > velocidadEscritura) {
-        //   textoVisible = textoVisible.substring(1);
-        //   tiempoEscritura = millis();
-        // }
-
-        // Aseguramos que el array coloresPorLetra tenga la longitud correcta
+        // Aseguramos tamaño del array de colores
         while (coloresPorLetra.length < textoVisible.length) {
           coloresPorLetra.push(random(coloresTexto));
         }
@@ -251,14 +242,14 @@
           coloresPorLetra.pop();
         }
 
-        // Cambiamos el color de cada letra cada 4 frames para efecto más rápido
+        // Cambia color de cada letra cada 4 frames
         if (frameCount % 4 === 0) {
           for (let i = 0; i < coloresPorLetra.length; i++) {
             coloresPorLetra[i] = random(coloresTexto);
           }
         }
 
-        // Renderizamos la dedicatoria con colores dinámicos
+        // Render dinámico dedicatoria
         let dedicatoriaHTML = "";
         for (let i = 0; i < textoVisible.length; i++) {
           dedicatoriaHTML += `<span style="color:${coloresPorLetra[i]}">${textoVisible[i]}</span>`;
